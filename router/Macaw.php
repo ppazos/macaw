@@ -15,16 +15,13 @@ class Macaw {
   public static $routes = array();
   public static $methods = array();
   public static $callbacks = array();
-  public static $maps = array();
   public static $patterns = array(
       ':any'  => '[^/]+',
       ':num'  => '[0-9]+',
       ':all'  => '.*',
       ':uuid' => '[a-f0-9]{8}\-[a-f0-9]{4}\-4[a-f0-9]{3}\-(8|9|a|b)[a-f0-9]{3}\-[a-f0-9]{12}'
   );
-  public static $error_callback;
   public static $_base_uri = '';
-
   public static $error_callbacks = array(); // HTTP Status Code => callback
 
   /**
@@ -43,15 +40,8 @@ class Macaw {
       self::$_base_uri = $params[0];
       return;
     }
-    else if ($method == 'map')
-    {
-      $maps = array_map('strtoupper', $params[0]);
-      $uri = strpos($params[1], '/') === 0 ? $params[1] : '/' . $params[1];
-      $callback = $params[2];
-    }
     else if (in_array($method, array('get', 'post', 'any')))
     {
-      $maps = null;
       $uri = strpos($params[0], '/') === 0 ? $params[0] : '/' . $params[0];
       $callback = $params[1];
     }
@@ -63,19 +53,16 @@ class Macaw {
     $uri = self::$_base_uri . $uri;
 
     // ----------------------------------------------
-    // echo $maps . PHP_EOL;
     // echo $uri . PHP_EOL;
     // echo $method . PHP_EOL;
     // echo $callback . PHP_EOL;
     // ----------------------------------------------
 
-    array_push(self::$maps, $maps); // empty?
     array_push(self::$routes, $uri); // /a/b/(:num)
     array_push(self::$methods, strtoupper($method)); // GET, POST, ANY
     array_push(self::$callbacks, $callback); // \controllers\AController@action
 
     // ----------------------------------------------
-    // print_r(self::$maps);
     // print_r(self::$routes);
     // print_r(self::$methods);
     // print_r(self::$callbacks);
@@ -87,10 +74,6 @@ class Macaw {
   /**
    * Defines callback if route is not found
   */
-  public static function error($callback) {
-    self::$error_callback = $callback;
-  }
-
   // onError(405, function() {...})
   public static function onError($status, $callback) {
     self::$error_callbacks[$status] = $callback;
@@ -143,8 +126,7 @@ class Macaw {
         // if method matches
         // Using an ANY option to match both GET and POST requests
         if (self::$methods[$pos] == $method ||
-            self::$methods[$pos] == 'ANY' ||
-            (!empty(self::$maps[$pos]) && in_array($method, self::$maps[$pos])))
+            self::$methods[$pos] == 'ANY')
         {
 
           // callback for route is not an function (is a controller@action)
@@ -221,8 +203,7 @@ class Macaw {
 
           // if method matches
           if (self::$methods[$pos] == $method ||
-              self::$methods[$pos] == 'ANY' ||
-              (!empty(self::$maps[$pos]) && in_array($method, self::$maps[$pos])))
+              self::$methods[$pos] == 'ANY')
           {
 
             // Array
